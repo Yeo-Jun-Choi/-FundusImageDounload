@@ -80,7 +80,7 @@ recode = {
     "Background_Diabetic_Retinopathy": 11,
     "Proliferative_Diabetic_Retinopathy": 12,
     "Arteriosclerotic_Retinopathy": 13,
-    "Hyperensive_Retinopathy": 14,
+    "Hypertensive_Retinopathy": 14,
     "Coats": 15,
     "Macroaneurism": 16,
     "Choroidal_Neovascularization": 17,
@@ -125,7 +125,7 @@ direct("Hemi-Central_Retinal_Vein_Occlusion")
 direct("Background_Diabetic_Retinopathy")
 direct("Proliferative_Diabetic_Retinopathy")
 direct("Arteriosclerotic_Retinopathy")
-direct("Hyperensive_Retinopathy")
+direct("Hypertensive_Retinopathy")
 direct("Coats")
 direct("Macroaneurism")
 direct("Choroidal_Neovascularization")
@@ -175,11 +175,11 @@ class data_download:
         global k
         num = 0
         num1 = 0
+        result = 0
         for i in filelist:
-            print("실행")
             x = i.split("\\")
             j = x[-1]
-
+            print(i)
             if (overlap and isinstance(data, pd.core.frame.DataFrame)):
                 ## dataFrame type
                 if (num1 == 0):
@@ -211,55 +211,72 @@ class data_download:
                         self.copydata(i, j, "Train/Diabetic_Macular_Edema", recode)
                 num += 1
             elif (overlap and isinstance(data, list)):
-                while ((data[num][0] + 'bmp') or (data[num][0]+'jpg') != j):
+                while (((data[num][0] + '.bmp') or (data[num][0]+'.jpg')) != j):
                     num += 1
                     if (len(data) == num):
                         break
-                if ((data[num][0] + 'bmp') or (data[num][0] +'jpg') == j):
+                if ((data[num][0] + '.bmp') or (data[num][0] +'.jpg') == j):
+                    count = 0
                     if ('0' in data[num][1]):
                         self.copydata(i, j, "Train/Normal", recode)
+                        count+=1
                     if ('1' in data[num][1]):
-                        self.copydata(i, j, 'Train/Hollenhost_Emboli', recode)
+                        self.copydata(i, j, 'Train/Hollenhorst_Emboli', recode)
+                        count += 1
                     if ('2' in data[num][1]):
                         self.copydata(i, j, 'Train/Branch_Retinal_Artery_Occlusion', recode)
+                        count += 1
                     if ('3' in data[num][1]):
                         self.copydata(i, j, 'Train/Cilio-Retinal_Artery_Occlusion', recode)
+                        count += 1
                     if ('4' in data[num][1]):
                         self.copydata(i, j, 'Train/Branch_Retinal_Vein_Occlusion', recode)
+                        count += 1
                     if ('5' in data[num][1]):
                         self.copydata(i, j, 'Train/Central_Retinal_Vein_Occlusion', recode)
+                        count += 1
                     if ('6' in data[num][1]):
                         self.copydata(i, j, 'Train/Hemi-Central_Retinal_Vein_Occlusion', recode)
+                        count += 1
                     if ('7' in data[num][1]):
                         self.copydata(i, j, 'Train/Background_Diabetic_Retinopathy', recode)
+                        count += 1
                     if ('8' in data[num][1]):
                         self.copydata(i, j, 'Train/Proliferative_Diabetic_Retinopathy', recode)
+                        count += 1
                     if ('9' in data[num][1]):
                         self.copydata(i, j, 'Train/Arteriosclerotic_Retinopathy', recode)
+                        count += 1
                     if ('10' in data[num][1]):
-                        self.copydata(i, j, 'Train/Hyperensive_Retinopathy', recode)
+                        self.copydata(i, j, 'Train/Hypertensive_Retinopathy', recode)
+                        count += 1
                     if ('11' in data[num][1]):
                         self.copydata(i, j, 'Train/Coats', recode)
+                        count += 1
                     if ('12' in data[num][1]):
                         self.copydata(i, j, 'Train/Macroaneurism', recode)
+                        count += 1
                     if ('13' in data[num][1]):
                         self.copydata(i, j, 'Train/Choroidal_Neovascularization', recode)
+                        count += 1
+                    print(count)
+                    result+=count
                 num += 1
 
             else:
-                if ("_dr" or "_dr_" in i):
+                if ("_dr" or "_dr_") in i:
                     self.copydata(i, j, "Train/diabetic_retinopathy", recode)
-                elif ("_g" or "_g_" or "glaucoma" in i):
+                elif ("_g" or "_g_") or "glaucoma" in i:
                     self.copydata(i, j, "Train/glaucomatous", recode)
-                elif ("_c" or "_c_" or "cataract" in i):
+                elif ("_c" or "_c_") or "cataract" in i:
                     self.copydata(i, j, "Train/cataract", recode)
-                elif ("retina_dissease" in i):
+                elif ("retina_dissease") in i:
                     self.copydata(i, j, "Train/retina_disease", recode)
-                elif ("good" in i):
+                elif ("good") in i:
                     self.copydata(i, j, "Train/Normal", recode)
                 else:
                     self.copydata(i, j, "Train/Normal", recode)
-
+        print(result)
     # 데이터 관련 정보 전처리. csv, tsv파일이 있으면 infodata=True
     def Comb(self, path):
         filelist = self.findAllImage(path)
@@ -276,11 +293,11 @@ class data_download:
                 if 'csv' in filename:
                     data = pd.read_csv(n_path+'/'+filename)
                     self.dividedata(filelist, overlap=True, data=data)
-                    break
+                    return
                 elif 'tsv' in filename:
                     data = pd.read_csv(n_path+'/'+filename, sep='\t')
                     self.dividedata(filelist, overlap=True, data=data)
-                    break
+                    return
                 elif 'txt' in filename and filename.split('.')[0].upper != "README":
                     new_filelist = []
                     file = open((n_path+'/'+filename))
@@ -301,11 +318,8 @@ class data_download:
                                 break
                     data = new_filelist
                     self.dividedata(filelist, overlap=True, data=data)
-                else:
-                    try:
-                        self.dividedata(filelist)
-                    except:
-                        pass
+                    return
+            self.dividedata(filelist)
 
     # 데이터 다운로드
     def downloadUrl(self, http, saving_name):
@@ -360,7 +374,10 @@ class data_download:
 
     # 파일 이름 변경 (대상 파일, 경로, 바꿀 파일 명, 데이터 번호(k))
     def changeName(self, filename, path, cName, datanum):
-        os.rename(path + '/' + filename, path + '/' + str(cName) + str(datanum) + '.jpg')
+        try:
+            os.rename(path + '/' + filename, path + '/' + str(cName) + str(datanum) + '.jpg')
+        except FileExistsError:
+            pass
 
     # 데이터 복사(파일명+경로, 파일명, 복사할 경로, 복사 할 위치값 dic)
     def copydata(self, file, data, path, recode):
@@ -392,6 +409,7 @@ class data_download:
                 # obj[num][0].Comb(obj[num][0].name, infodata=True)
                 return
             else:
+                print("번호출력",num)
                 obj[num][0].Comb(obj[num][0].name)
         except:
             obj[num][0].Comb(obj[num][0].name)
@@ -413,7 +431,7 @@ def main():
     for ob in obj:
         ob[0].preAnalysis(obj,num)
         num+=1
-    makeInfoHtml()
+   #makeInfoHtml()
     writedata.close()
 
 main()
