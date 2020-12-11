@@ -161,7 +161,8 @@ class data_download:
         allForderList = list(filter(os.path.isdir, allFile))
         filelist = []
         if not allForderList:
-            filelist = allFile
+            filelist += [file for file in allFile if
+                         file.endswith(".JPG") or file.endswith(".BMP") or file.endswith("jpg") or file.endswith("bmp")]
         else:
             allForderList = [path]+self.findDataForder(allForderList)
             for forder in allForderList:
@@ -260,7 +261,7 @@ class data_download:
                     self.copydata(i, j, "Train/Normal", recode)
 
     # 데이터 관련 정보 전처리. csv, tsv파일이 있으면 infodata=True
-    def Comb(self, path, infodata=False):
+    def Comb(self, path):
         filelist = self.findAllImage(path)
         for i in range(len(filelist)):
             oldname = filelist[i]
@@ -269,47 +270,42 @@ class data_download:
                 image = Image.open(oldname)
                 image.save(newname, 'BMP')
 
-        global k
-
-        if(infodata):
-            dir_name = path
-            for n_path, dirs, files in os.walk(dir_name):
-                for filename in files:
-                    if 'csv' in filename:
-                        data = pd.read_csv(n_path+'/'+filename)
-                        break
-                    elif 'tsv' in filename:
-                        data = pd.read_csv(n_path+'/'+filename, sep='\t')
-                        break
-                    elif 'txt' in filename:
-                        new_filelist = []
-                        file = open((n_path+'/'+filename))
+        for n_path, dirs, files in os.walk(path):
+            print(n_path)
+            for filename in files:
+                if 'csv' in filename:
+                    data = pd.read_csv(n_path+'/'+filename)
+                    self.dividedata(filelist, overlap=True, data=data)
+                    break
+                elif 'tsv' in filename:
+                    data = pd.read_csv(n_path+'/'+filename, sep='\t')
+                    self.dividedata(filelist, overlap=True, data=data)
+                    break
+                elif 'txt' in filename and filename.split('.')[0].upper != "README":
+                    new_filelist = []
+                    file = open((n_path+'/'+filename))
+                    line = file.readline()
+                    while line:
+                        new_filelist.append(line)
                         line = file.readline()
-                        while line:
-                            new_filelist.append(line)
-                            line = file.readline()
-                        file.close()
-                        for i in range(len(new_filelist)):
+                    file.close()
+                    for i in range(len(new_filelist)):
+                        try:
+                            new_filelist[i] = new_filelist[i].split('\t')
+                            new_filelist[i][1] = new_filelist[i][1].split(' ')
+                        except:
                             try:
-                                new_filelist[i] = new_filelist[i].split('\t')
+                                new_filelist[i] = new_filelist[i].split(',')
                                 new_filelist[i][1] = new_filelist[i][1].split(' ')
                             except:
-                                try:
-                                    new_filelist[i] = new_filelist[i].split(',')
-                                    new_filelist[i][1] = new_filelist[i][1].split(' ')
-                                except:
-                                    break
-                        data = new_filelist
-            try:
-                self.dividedata(filelist, overlap=True, data=data)
-            except:
-                pass
-
-        else:
-            try:
-                self.dividedata(filelist)
-            except:
-                pass
+                                break
+                    data = new_filelist
+                    self.dividedata(filelist, overlap=True, data=data)
+                else:
+                    try:
+                        self.dividedata(filelist)
+                    except:
+                        pass
 
     # 데이터 다운로드
     def downloadUrl(self, http, saving_name):
@@ -391,19 +387,14 @@ class data_download:
 
     # 데이터 전처리 기능 통합
     def preAnalysis(self, obj, num):
-        # l = open('UrlList.csv', 'r', encoding='utf=8',newline="")
-        # rdr = csv.reader(l)
-        # obj = []
-        # for line in rdr:
-        #     a = data_download(line[0], line[1], line[2])
-        #     obj.append([a, line[0]])
-        # l.close()
         try:
             if (obj[num + 1][1] == obj[num][1]):
-                obj[num][0].Comb(obj[num][0].name, infodata=True)
+                # obj[num][0].Comb(obj[num][0].name, infodata=True)
+                return
             else:
                 obj[num][0].Comb(obj[num][0].name)
         except:
+            obj[num][0].Comb(obj[num][0].name)
             pass
 
     #데이터 설명 파일(HTML) 생성
