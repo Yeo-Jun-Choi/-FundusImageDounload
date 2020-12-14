@@ -152,7 +152,10 @@ class data_download:
             new_forderlist = list(filter(os.path.isdir, glob.glob(forder+"\*")))
             if new_forderlist:
                 resultForder += self.findDataForder(new_forderlist)
+        resultForder = set(resultForder)
+        resultForder = list(resultForder)
         return resultForder
+
 
     # 데이터 폴더 내 모든 이미지파일 위치 리턴
     def findAllImage(self, path):
@@ -161,12 +164,15 @@ class data_download:
         allForderList = list(filter(os.path.isdir, allFile))
         filelist = []
         if not allForderList:
+            print(path)
             filelist += [file for file in allFile if
                          file.endswith(".JPG") or file.endswith(".BMP") or file.endswith("jpg") or file.endswith("bmp")]
         else:
             allForderList = [path]+self.findDataForder(allForderList)
             for forder in allForderList:
-                filelist += [file for file in list(filter(os.path.isfile, glob.glob(forder))) if
+                print(forder)
+                fileForder = forder+'\*'
+                filelist += [file for file in list(filter(os.path.isfile, glob.glob(fileForder))) if
                          file.endswith(".JPG") or file.endswith(".BMP") or file.endswith("jpg") or file.endswith("bmp")]
         return filelist
 
@@ -179,13 +185,11 @@ class data_download:
         for i in filelist:
             x = i.split("\\")
             j = x[-1]
-            print(i)
             if (overlap and isinstance(data, pd.core.frame.DataFrame)):
                 ## dataFrame type
                 if (num1 == 0):
                     for i in data.columns:
                         if ('gradable' in i):
-                            print("11212실행")
                             grad = data.columns[num1]
                             num1 += 1
                         elif ('dr_grade' in i):
@@ -259,8 +263,6 @@ class data_download:
                     if ('13' in data[num][1]):
                         self.copydata(i, j, 'Train/Choroidal_Neovascularization', recode)
                         count += 1
-                    print(count)
-                    result+=count
                 num += 1
 
             else:
@@ -276,7 +278,6 @@ class data_download:
                     self.copydata(i, j, "Train/Normal", recode)
                 else:
                     self.copydata(i, j, "Train/Normal", recode)
-        print(result)
     # 데이터 관련 정보 전처리. csv, tsv파일이 있으면 infodata=True
     def Comb(self, path):
         filelist = self.findAllImage(path)
@@ -288,7 +289,6 @@ class data_download:
                 image.save(newname, 'BMP')
 
         for n_path, dirs, files in os.walk(path):
-            print(n_path)
             for filename in files:
                 if 'csv' in filename:
                     data = pd.read_csv(n_path+'/'+filename)
@@ -409,14 +409,15 @@ class data_download:
                 # obj[num][0].Comb(obj[num][0].name, infodata=True)
                 return
             else:
-                print("번호출력",num)
+                print(obj[num][0].name,"이게 실행됩니다.")
                 obj[num][0].Comb(obj[num][0].name)
         except:
+            print(obj[num][0].name,"이게 실행됩니다.")
             obj[num][0].Comb(obj[num][0].name)
             pass
 
     #데이터 설명 파일(HTML) 생성
-
+    # Messidor을 해야함
 
 def main():
     f = open('UrlList.csv', 'r', encoding='utf-8',newline="")
@@ -429,9 +430,15 @@ def main():
     f.close()
     num = 0
     for ob in obj:
+        if(ob[1] == 'STARE'):
+            print('{0}는 넘어갑니다. 번호는 {1}입니다.'.format(ob[1], num))
+            num+=1
+            continue
         ob[0].preAnalysis(obj,num)
         num+=1
    #makeInfoHtml()
     writedata.close()
 
 main()
+
+### find method는 다 했으나, divide에서 문제가 생김. gloco에서 문제가 생겨서 확인 요망
