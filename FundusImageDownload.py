@@ -21,6 +21,7 @@ import shutil
 import csv
 import sys
 from PIL import Image
+import time
 
 # 데이터셋 출처&다운로드 링크
 arg = open('UrlList.csv', 'w', encoding='utf=8', newline="")
@@ -89,9 +90,11 @@ recode = {
 
 # Dataset 처리 관련 폴더 생성
 def makeInfoHtml():
-    df = pd.read_csv('Train/Train.tsv', sep='\t')
-    df = pd.DataFrame(df['Background_Diabetic_Retinopathy'].value_counts())
-    df_sum = df['Background_Diabetic_Retinopathy'].sum()
+    df = pd.read_csv('Train/Train.tsv', sep='\t', header=None)
+    df.columns = ['Data name', 'Disease number', 'Disease name']
+    df = pd.DataFrame(df['Disease name'].value_counts())
+    df_sum = df['Disease name'].sum()
+    print(df_sum)
     html = df.to_html(justify='center')
     html = '<h1></h1>\n<h1>Dataset 분류 결과(개수)</h1>' + html
     html = html.replace('</tbody>',
@@ -100,7 +103,6 @@ def makeInfoHtml():
     recode_dic = pd.DataFrame(recode, index=[0])
     df1 = recode_dic.transpose()
     df1 = df1.to_html(justify='center')
-    df1
     df1 = '<h1>Dataset 분류 병명</h1>\n' + df1
     df1 = df1.replace("<th>0</th>", "<th>Disease Number</th>")
 
@@ -145,35 +147,20 @@ class data_download:
         self.http = http
         self.saving_name = saving_name
 
-    # 데이터 폴더 내 모든 폴더 위치 리턴
-    def findDataForder(self, forderList):
-        resultForder = forderList
-        for forder in forderList:
-            new_forderlist = list(filter(os.path.isdir, glob.glob(forder+"\*")))
-            if new_forderlist:
-                resultForder += self.findDataForder(new_forderlist)
-        resultForder = set(resultForder)
-        resultForder = list(resultForder)
-        return resultForder
-
-
     # 데이터 폴더 내 모든 이미지파일 위치 리턴
     def findAllImage(self, path):
-        mainpath = path+'\*'
-        allFile = glob.glob(mainpath)
-        allForderList = list(filter(os.path.isdir, allFile))
+        allForderList = []
         filelist = []
+        for (patha, dir, files) in os.walk(path):
+            allForderList.append(patha)
         if not allForderList:
-            print(path)
             filelist += [file for file in allFile if
-                         file.endswith(".JPG") or file.endswith(".BMP") or file.endswith("jpg") or file.endswith("bmp")]
+                         file.upper().endswith(".JPG") or file.upper().endswith(".BMP") or file.upper().endswith(".PNG")]
         else:
-            allForderList = [path]+self.findDataForder(allForderList)
             for forder in allForderList:
-                print(forder)
                 fileForder = forder+'\*'
                 filelist += [file for file in list(filter(os.path.isfile, glob.glob(fileForder))) if
-                         file.endswith(".JPG") or file.endswith(".BMP") or file.endswith("jpg") or file.endswith("bmp")]
+                         file.upper().endswith(".JPG") or file.upper().endswith(".BMP") or file.upper().endswith(".PNG")]
         return filelist
 
     # 데이터를 'Train'폴더에 통합. (overlap : 중복 허용 || data : data설명 csv, tsv, txt파일)
@@ -181,28 +168,29 @@ class data_download:
         global k
         num = 0
         num1 = 0
-        result = 0
+        count = 0
         for i in filelist:
             x = i.split("\\")
             j = x[-1]
-            if (overlap and isinstance(data, pd.core.frame.DataFrame)):
+            j = j.upper()
+            if overlap and isinstance(data, pd.core.frame.DataFrame):
                 ## dataFrame type
                 if (num1 == 0):
-                    for i in data.columns:
-                        if ('gradable' in i):
+                    for m in data.columns:
+                        if ('gradable' in m):
                             grad = data.columns[num1]
                             num1 += 1
-                        elif ('dr_grade' in i):
+                        elif ('dr_grade' in m):
                             dr = data.columns[num1]
                             num1 += 1
-                        elif ('dme' in i):
+                        elif ('dme' in m):
                             dme = data.columns[num1]
                             num1 += 1
                         else:
                             id = data.columns[num1]
                             num1 += 1
 
-                if (data[id][num] == j):
+                if (data[id][num].upper() == j):
                     if (data[grad][num] == 0.0):
                         num += 1
                         continue
@@ -211,15 +199,16 @@ class data_download:
                     else:
                         self.copydata(i, j, "Train/Normal", recode)
                     if (data[dme][num] == 1):
-                        k -= 1
                         self.copydata(i, j, "Train/Diabetic_Macular_Edema", recode)
+                else:
+                    count+=1
                 num += 1
             elif (overlap and isinstance(data, list)):
-                while (((data[num][0] + '.bmp') or (data[num][0]+'.jpg')) != j):
+                while (((data[num][0].upper() + '.BMP') or (data[num][0].upper()+'.JPG')) != j):
                     num += 1
                     if (len(data) == num):
                         break
-                if ((data[num][0] + '.bmp') or (data[num][0] +'.jpg') == j):
+                if ((data[num][0].upper() + '.BMP') or (data[num][0].upper() +'.JPG') == j):
                     count = 0
                     if ('0' in data[num][1]):
                         self.copydata(i, j, "Train/Normal", recode)
@@ -264,18 +253,19 @@ class data_download:
                         self.copydata(i, j, 'Train/Choroidal_Neovascularization', recode)
                         count += 1
                 num += 1
-
             else:
-                if ("_dr" or "_dr_") in i:
-                    self.copydata(i, j, "Train/diabetic_retinopathy", recode)
-                elif ("_g" or "_g_") or "glaucoma" in i:
-                    self.copydata(i, j, "Train/glaucomatous", recode)
-                elif ("_c" or "_c_") or "cataract" in i:
-                    self.copydata(i, j, "Train/cataract", recode)
-                elif ("retina_dissease") in i:
-                    self.copydata(i, j, "Train/retina_disease", recode)
-                elif ("good") in i:
+                if any(word in j for word in ["GOOD","NORMAL" ,"NL"]):
                     self.copydata(i, j, "Train/Normal", recode)
+                elif any(word in j for word in ["RETINA_DISEASE","RETINA"]):
+                    self.copydata(i, j, "Train/retina_disease", recode)
+                elif any(word in j for word in ["_C","_C_","CATARACT"]):
+                    self.copydata(i, j, "Train/cataract", recode)
+                elif any(word in j for word in ["_G","_G_","GLAUCOMA","GLAUCOMATOUS"]):
+                    self.copydata(i, j, "Train/glaucomatous", recode)
+                elif any(word in j for word in ["_DR","_DR_"]):
+                    self.copydata(i, j, "Train/diabetic_retinopathy", recode)
+                elif "BAD" in j:
+                    continue
                 else:
                     self.copydata(i, j, "Train/Normal", recode)
     # 데이터 관련 정보 전처리. csv, tsv파일이 있으면 infodata=True
@@ -298,7 +288,7 @@ class data_download:
                     data = pd.read_csv(n_path+'/'+filename, sep='\t')
                     self.dividedata(filelist, overlap=True, data=data)
                     return
-                elif 'txt' in filename and filename.split('.')[0].upper != "README":
+                elif 'txt' in filename and filename.split('.')[0].upper() != "README":
                     new_filelist = []
                     file = open((n_path+'/'+filename))
                     line = file.readline()
@@ -319,7 +309,7 @@ class data_download:
                     data = new_filelist
                     self.dividedata(filelist, overlap=True, data=data)
                     return
-            self.dividedata(filelist)
+        self.dividedata(filelist)
 
     # 데이터 다운로드
     def downloadUrl(self, http, saving_name):
@@ -406,13 +396,10 @@ class data_download:
     def preAnalysis(self, obj, num):
         try:
             if (obj[num + 1][1] == obj[num][1]):
-                # obj[num][0].Comb(obj[num][0].name, infodata=True)
                 return
             else:
-                print(obj[num][0].name,"이게 실행됩니다.")
                 obj[num][0].Comb(obj[num][0].name)
         except:
-            print(obj[num][0].name,"이게 실행됩니다.")
             obj[num][0].Comb(obj[num][0].name)
             pass
 
@@ -430,15 +417,11 @@ def main():
     f.close()
     num = 0
     for ob in obj:
-        if(ob[1] == 'STARE'):
-            print('{0}는 넘어갑니다. 번호는 {1}입니다.'.format(ob[1], num))
-            num+=1
-            continue
         ob[0].preAnalysis(obj,num)
         num+=1
-   #makeInfoHtml()
+    time.sleep(10)
     writedata.close()
+    makeInfoHtml()
+
 
 main()
-
-### find method는 다 했으나, divide에서 문제가 생김. gloco에서 문제가 생겨서 확인 요망
