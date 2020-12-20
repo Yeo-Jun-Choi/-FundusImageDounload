@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # # Retinal Fundus Image
-# - 총 5개의 Data Set (4.67G)
+# - 총 5개의 Data Set (4.85G)
 # - 파이썬 파일과 동일한 폴더에 다운로드 및 정리
 #   - 데이터 폴더 : 'Train'
 #   - 데이터 관련 CSV파일 : 'Train/Train.tsv'
@@ -77,24 +77,24 @@ def invert_dictionary(obj):
 
 recode = {
     "Normal": 0,
-    "diabetic_retinopathy": 1,
-    "glaucomatous": 2,
-    "cataract": 3,
-    "retina_disease": 4,
-    "Hollenhorst_Emboli": 5,
-    "Branch_Retinal_Artery_Occlusion": 6,
-    "Cilio-Retinal_Artery_Occlusion": 7,
-    "Branch_Retinal_Vein_Occlusion": 8,
-    "Central_Retinal_Vein_Occlusion": 9,
-    "Hemi-Central_Retinal_Vein_Occlusion": 10,
-    "Background_Diabetic_Retinopathy": 11,
-    "Proliferative_Diabetic_Retinopathy": 12,
-    "Arteriosclerotic_Retinopathy": 13,
-    "Hypertensive_Retinopathy": 14,
-    "Coats": 15,
-    "Macroaneurism": 16,
-    "Choroidal_Neovascularization": 17,
-    "Diabetic_Macular_Edema": 18
+    "diabetic_retinopathy": 15,
+    "glaucomatous": 16,
+    "cataract": 17,
+    "retina_disease": 18,
+    "Hollenhorst_Emboli": 1,
+    "Branch_Retinal_Artery_Occlusion": 2,
+    "Cilio-Retinal_Artery_Occlusion": 3,
+    "Branch_Retinal_Vein_Occlusion": 4,
+    "Central_Retinal_Vein_Occlusion": 5,
+    "Hemi-Central_Retinal_Vein_Occlusion": 6,
+    "Background_Diabetic_Retinopathy": 7,
+    "Proliferative_Diabetic_Retinopathy": 8,
+    "Arteriosclerotic_Retinopathy": 9,
+    "Hypertensive_Retinopathy": 10,
+    "Coats": 11,
+    "Macroaneurism": 12,
+    "Choroidal_Neovascularization": 13,
+    "Diabetic_Macular_Edema": 19
 }
 r_recode = invert_dictionary(recode)
 
@@ -106,7 +106,6 @@ def Make_Info_Html():
     df.columns = ['Data name', 'Disease number', namecol]
     df = pd.DataFrame(df[namecol].value_counts())
     df_sum = df[namecol].sum()
-    print(df_sum)
     html = df.to_html(justify='center')
     html = '<h1></h1>\n<h1>Dataset 분류 결과(개수)</h1>' + html
     html = html.replace('</tbody>',
@@ -196,7 +195,10 @@ class data_download:
                     break
             for number in range(len(data[num][1])):
                 try:
-                    self.copydata(i, j, "Train/" + r_recode[int(data[num][1][number])][0], recode)
+                    datanum = int(data[num][1][number])
+                    if(datanum == 14):
+                        continue
+                    self.copydata(i, j, "Train/" + r_recode[datanum][0], recode)
                 except ValueError:
                     pass
         global k
@@ -394,13 +396,13 @@ def main():
     for line in rdr:
         data = data_download(line[0],line[1],line[2])
         obj.append([data,line[0]])
-        #data.downloadDataset()
+        data.downloadDataset()
     f.close()
     num = 0
     for ob in obj:
         ob[0].preAnalysis(obj,num)
         num+=1
-    time.sleep(10)
+    time.sleep(3)
     writedata.close()
     Make_Info_Html()
 
