@@ -2,7 +2,7 @@
 # coding: utf-8
 
 # # Retinal Fundus Image
-# - 총 5개의 Data Set (4.67G)
+# - 총 5개의 Data Set (4.85G)
 # - 파이썬 파일과 동일한 폴더에 다운로드 및 정리
 #   - 데이터 폴더 : 'Train'
 #   - 데이터 관련 CSV파일 : 'Train/Train.tsv'
@@ -24,7 +24,8 @@ from PIL import Image
 import time
 
 # 데이터셋 출처&다운로드 링크
-arg = open('UrlList.csv', 'w', encoding='utf=8', newline="")
+link_File = 'UrlList.csv'
+arg = open(link_File, 'w', encoding='utf=8', newline="")
 wr = csv.writer(arg)
 wr.writerow(['STARE', 'http://cecas.clemson.edu/~ahoover/stare/images/all-images.zip', 'STARE_Project.zip'])
 wr.writerow(['STARE', "http://cecas.clemson.edu/~ahoover/stare/diagnoses/all-mg-codes.txt", 'STARE/info.txt'])
@@ -41,14 +42,14 @@ arg.close()
 # sys.argv로 추가적인 데이터 셋 받을 때 처리 정의
 while (True):
     if (len(sys.argv)==4):
-        l = open('UrlList.csv', 'a', newline="",encoding='utf-8')
+        l = open(link_File, 'a', newline="",encoding='utf-8')
         l.write(sys.argv[1], sys.argv[2], sys.argv[3])
         l.close()
         break
     elif(len(sys.argv)>4):
         print("다운로드 URL 입력 오류입니다. 양식 (python 'Fundus.py' '데이터명' 'URL' '(필요시)다운로드 파일명')을 지켜주세요.")
     elif(len(sys.argv)==3):
-        l = open('UrlList.csv', 'a', newline="", encoding='utf-8')
+        l = open(link_File, 'a', newline="", encoding='utf-8')
         sys.argv[3] = sys.argv[2].split('/')[-1]
         l.write(sys.argv[1], sys.argv[2], sys.argv[3])
     else:
@@ -66,35 +67,45 @@ def direct(path):
 
 # ## Dataset 처리 관련 변수 정의
 
+from collections import defaultdict
+
+def invert_dictionary(obj):
+    inv_obj = defaultdict(list)
+    for key, value in obj.items():
+        inv_obj[value].append(key)
+    return dict(inv_obj)
+
 recode = {
     "Normal": 0,
-    "diabetic_retinopathy": 1,
-    "glaucomatous": 2,
-    "cataract": 3,
-    "retina_disease": 4,
-    "Hollenhorst_Emboli": 5,
-    "Branch_Retinal_Artery_Occlusion": 6,
-    "Cilio-Retinal_Artery_Occlusion": 7,
-    "Branch_Retinal_Vein_Occlusion": 8,
-    "Central_Retinal_Vein_Occlusion": 9,
-    "Hemi-Central_Retinal_Vein_Occlusion": 10,
-    "Background_Diabetic_Retinopathy": 11,
-    "Proliferative_Diabetic_Retinopathy": 12,
-    "Arteriosclerotic_Retinopathy": 13,
-    "Hypertensive_Retinopathy": 14,
-    "Coats": 15,
-    "Macroaneurism": 16,
-    "Choroidal_Neovascularization": 17,
-    "Diabetic_Macular_Edema": 18
+    "diabetic_retinopathy": 15,
+    "glaucomatous": 16,
+    "cataract": 17,
+    "retina_disease": 18,
+    "Hollenhorst_Emboli": 1,
+    "Branch_Retinal_Artery_Occlusion": 2,
+    "Cilio-Retinal_Artery_Occlusion": 3,
+    "Branch_Retinal_Vein_Occlusion": 4,
+    "Central_Retinal_Vein_Occlusion": 5,
+    "Hemi-Central_Retinal_Vein_Occlusion": 6,
+    "Background_Diabetic_Retinopathy": 7,
+    "Proliferative_Diabetic_Retinopathy": 8,
+    "Arteriosclerotic_Retinopathy": 9,
+    "Hypertensive_Retinopathy": 10,
+    "Coats": 11,
+    "Macroaneurism": 12,
+    "Choroidal_Neovascularization": 13,
+    "Diabetic_Macular_Edema": 19
 }
+r_recode = invert_dictionary(recode)
+
 
 # Dataset 처리 관련 폴더 생성
-def makeInfoHtml():
+def Make_Info_Html():
+    namecol = 'Disease Name'
     df = pd.read_csv('Train/Train.tsv', sep='\t', header=None)
-    df.columns = ['Data name', 'Disease number', 'Disease name']
-    df = pd.DataFrame(df['Disease name'].value_counts())
-    df_sum = df['Disease name'].sum()
-    print(df_sum)
+    df.columns = ['Data name', 'Disease number', namecol]
+    df = pd.DataFrame(df[namecol].value_counts())
+    df_sum = df[namecol].sum()
     html = df.to_html(justify='center')
     html = '<h1></h1>\n<h1>Dataset 분류 결과(개수)</h1>' + html
     html = html.replace('</tbody>',
@@ -111,7 +122,7 @@ def makeInfoHtml():
         Traininfo.write(html)
 try:
     os.makedirs(os.path.join("Train"))
-except:
+except FileExistsError:
     pass
 direct("diabetic_retinopathy")
 direct("glaucomatous")
@@ -148,112 +159,84 @@ class data_download:
         self.saving_name = saving_name
 
     # 데이터 폴더 내 모든 이미지파일 위치 리턴
-    def findAllImage(self, path):
-        allForderList = []
+    def return_allImage(self, path):
+        all_ForderList = []
         filelist = []
         for (patha, dir, files) in os.walk(path):
-            allForderList.append(patha)
-        if not allForderList:
+            all_ForderList.append(patha)
+        if not all_ForderList:
             filelist += [file for file in allFile if
                          file.upper().endswith(".JPG") or file.upper().endswith(".BMP") or file.upper().endswith(".PNG")]
         else:
-            for forder in allForderList:
-                fileForder = forder+'\*'
-                filelist += [file for file in list(filter(os.path.isfile, glob.glob(fileForder))) if
+            for forder in all_ForderList:
+                file_Forder = forder+'\*'
+                filelist += [file for file in list(filter(os.path.isfile, glob.glob(file_Forder))) if
                          file.upper().endswith(".JPG") or file.upper().endswith(".BMP") or file.upper().endswith(".PNG")]
         return filelist
 
     # 데이터를 'Train'폴더에 통합. (overlap : 중복 허용 || data : data설명 csv, tsv, txt파일)
     def dividedata(self, filelist, overlap=False, data=None):
+        def divide_first_type(data, i, j, num):
+            global k
+            if (data[id][num].upper() == j):
+                if (data[grad][num] == 0.0):
+                    num += 1
+                if (data[dr][num] != 0):
+                    self.copydata(i, j, "Train/diabetic_retinopathy", recode)
+                else:
+                    self.copydata(i, j, "Train/Normal", recode)
+                if (data[dme][num] == 1):
+                    self.copydata(i, j, "Train/Diabetic_Macular_Edema", recode)
+        def divide_second_type(data, i, j, num):
+            global k
+            while (((data[num][0].upper() + '.BMP') or (data[num][0].upper() + '.JPG')) != j):
+                num += 1
+                if (len(data) == num):
+                    break
+            for number in range(len(data[num][1])):
+                try:
+                    datanum = int(data[num][1][number])
+                    if(datanum == 14):
+                        continue
+                    self.copydata(i, j, "Train/" + r_recode[datanum][0], recode)
+                except ValueError:
+                    pass
         global k
+
         num = 0
         num1 = 0
-        count = 0
-        for i in filelist:
-            x = i.split("\\")
-            j = x[-1]
-            j = j.upper()
-            if overlap and isinstance(data, pd.core.frame.DataFrame):
-                ## dataFrame type
-                if (num1 == 0):
-                    for m in data.columns:
-                        if ('gradable' in m):
-                            grad = data.columns[num1]
-                            num1 += 1
-                        elif ('dr_grade' in m):
-                            dr = data.columns[num1]
-                            num1 += 1
-                        elif ('dme' in m):
-                            dme = data.columns[num1]
-                            num1 += 1
-                        else:
-                            id = data.columns[num1]
-                            num1 += 1
-
-                if (data[id][num].upper() == j):
-                    if (data[grad][num] == 0.0):
-                        num += 1
-                        continue
-                    if (data[dr][num] != 0):
-                        self.copydata(i, j, "Train/diabetic_retinopathy", recode)
-                    else:
-                        self.copydata(i, j, "Train/Normal", recode)
-                    if (data[dme][num] == 1):
-                        self.copydata(i, j, "Train/Diabetic_Macular_Edema", recode)
+        if overlap and isinstance(data, pd.core.frame.DataFrame):
+            for m in data.columns:
+                if ('gradable' in m):
+                    grad = data.columns[num1]
+                    num1 += 1
+                elif ('dr_grade' in m):
+                    dr = data.columns[num1]
+                    num1 += 1
+                elif ('dme' in m):
+                    dme = data.columns[num1]
+                    num1 += 1
                 else:
-                    count+=1
+                    id = data.columns[num1]
+                    num1 += 1
+            for i in filelist:
+                x = i.split("\\")
+                j = x[-1]
+                j = j.upper()
+                divide_first_type(data, i, j, num)
                 num += 1
-            elif (overlap and isinstance(data, list)):
-                while (((data[num][0].upper() + '.BMP') or (data[num][0].upper()+'.JPG')) != j):
-                    num += 1
-                    if (len(data) == num):
-                        break
-                if ((data[num][0].upper() + '.BMP') or (data[num][0].upper() +'.JPG') == j):
-                    count = 0
-                    if ('0' in data[num][1]):
-                        self.copydata(i, j, "Train/Normal", recode)
-                        count+=1
-                    if ('1' in data[num][1]):
-                        self.copydata(i, j, 'Train/Hollenhorst_Emboli', recode)
-                        count += 1
-                    if ('2' in data[num][1]):
-                        self.copydata(i, j, 'Train/Branch_Retinal_Artery_Occlusion', recode)
-                        count += 1
-                    if ('3' in data[num][1]):
-                        self.copydata(i, j, 'Train/Cilio-Retinal_Artery_Occlusion', recode)
-                        count += 1
-                    if ('4' in data[num][1]):
-                        self.copydata(i, j, 'Train/Branch_Retinal_Vein_Occlusion', recode)
-                        count += 1
-                    if ('5' in data[num][1]):
-                        self.copydata(i, j, 'Train/Central_Retinal_Vein_Occlusion', recode)
-                        count += 1
-                    if ('6' in data[num][1]):
-                        self.copydata(i, j, 'Train/Hemi-Central_Retinal_Vein_Occlusion', recode)
-                        count += 1
-                    if ('7' in data[num][1]):
-                        self.copydata(i, j, 'Train/Background_Diabetic_Retinopathy', recode)
-                        count += 1
-                    if ('8' in data[num][1]):
-                        self.copydata(i, j, 'Train/Proliferative_Diabetic_Retinopathy', recode)
-                        count += 1
-                    if ('9' in data[num][1]):
-                        self.copydata(i, j, 'Train/Arteriosclerotic_Retinopathy', recode)
-                        count += 1
-                    if ('10' in data[num][1]):
-                        self.copydata(i, j, 'Train/Hypertensive_Retinopathy', recode)
-                        count += 1
-                    if ('11' in data[num][1]):
-                        self.copydata(i, j, 'Train/Coats', recode)
-                        count += 1
-                    if ('12' in data[num][1]):
-                        self.copydata(i, j, 'Train/Macroaneurism', recode)
-                        count += 1
-                    if ('13' in data[num][1]):
-                        self.copydata(i, j, 'Train/Choroidal_Neovascularization', recode)
-                        count += 1
+        elif (overlap and isinstance(data, list)):
+            for i in filelist:
+                x = i.split("\\")
+                j = x[-1]
+                j = j.upper()
+                divide_second_type(data, i, j, num)
                 num += 1
-            else:
+        else:
+            for i in filelist:
+                x = i.split("\\")
+                j = x[-1]
+                j = j.upper()
                 if any(word in j for word in ["GOOD","NORMAL" ,"NL"]):
                     self.copydata(i, j, "Train/Normal", recode)
                 elif any(word in j for word in ["RETINA_DISEASE","RETINA"]):
@@ -270,7 +253,7 @@ class data_download:
                     self.copydata(i, j, "Train/Normal", recode)
     # 데이터 관련 정보 전처리. csv, tsv파일이 있으면 infodata=True
     def Comb(self, path):
-        filelist = self.findAllImage(path)
+        filelist = self.return_allImage(path)
         for i in range(len(filelist)):
             oldname = filelist[i]
             if ('ppm' in oldname):
@@ -407,21 +390,21 @@ class data_download:
     # Messidor을 해야함
 
 def main():
-    f = open('UrlList.csv', 'r', encoding='utf-8',newline="")
+    f = open(link_File, 'r', encoding='utf-8',newline="")
     rdr = csv.reader(f)
     obj = []
     for line in rdr:
         data = data_download(line[0],line[1],line[2])
         obj.append([data,line[0]])
-        #data.downloadDataset()
+        data.downloadDataset()
     f.close()
     num = 0
     for ob in obj:
         ob[0].preAnalysis(obj,num)
         num+=1
-    time.sleep(10)
+    time.sleep(3)
     writedata.close()
-    makeInfoHtml()
+    Make_Info_Html()
 
 
 main()
