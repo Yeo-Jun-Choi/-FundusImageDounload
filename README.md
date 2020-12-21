@@ -17,6 +17,7 @@ If you run this code, Your computer takes them and classify each disease name.
 All of them is 4.85G. so your hard disk must have about 10G free space.
 
 If you have additional dataset, you can add it when you run this.
+
  Ex) python FundusImageDownload.py 'Dataname', 'https:', 'savingName.zip'
 or Revise 'UrlList.csv' (when you run this code, the csv file is formed.
 
