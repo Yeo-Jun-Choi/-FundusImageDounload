@@ -1,14 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Retinal Fundus Image
-# - 총 5개의 Data Set (4.85G)
-# - 파이썬 파일과 동일한 폴더에 다운로드 및 정리
-#   - 데이터 폴더 : 'Train'
-#   - 데이터 관련 CSV파일 : 'Train/Train.tsv'
-#   - 분류 결과 설명 파일 : 'Train/Traininfo.html'
-# - 데이터 이미지 확장자는 jpg, bmp
-
 import http
 import zipfile
 import urllib.request
@@ -55,7 +47,7 @@ while (True):
     else:
         break
 
-# 데이터 개수 세기 위한 변수
+# 각기 다른 데이터 이름을 하나로 통합할 때, 순서를 위해 전역변수 k를 사용
 k = 1
 
 # 폴더 생성 함수
@@ -65,16 +57,13 @@ def direct(path):
     except FileExistsError:
         pass
 
-# ## Dataset 처리 관련 변수 정의
-
+# Data 분류에 사용할 병명 dict형태로 정리
 from collections import defaultdict
-
 def invert_dictionary(obj):
     inv_obj = defaultdict(list)
     for key, value in obj.items():
         inv_obj[value].append(key)
     return dict(inv_obj)
-
 recode = {
     "Normal": 0,
     "diabetic_retinopathy": 15,
@@ -98,8 +87,7 @@ recode = {
 }
 r_recode = invert_dictionary(recode)
 
-
-# Dataset 처리 관련 폴더 생성
+# 분류데이터 설명 Html파일 작성
 def Make_Info_Html():
     namecol = 'Disease Name'
     df = pd.read_csv('Train/Train.tsv', sep='\t', header=None)
@@ -120,10 +108,13 @@ def Make_Info_Html():
     with open('Train/Traininfo.html', 'w', newline="") as Traininfo:
         Traininfo.write(df1)
         Traininfo.write(html)
+
 try:
     os.makedirs(os.path.join("Train"))
 except FileExistsError:
     pass
+
+# Dataset 처리 관련 폴더 생성
 direct("diabetic_retinopathy")
 direct("glaucomatous")
 direct("Normal")
@@ -144,8 +135,8 @@ direct("Macroaneurism")
 direct("Choroidal_Neovascularization")
 direct("Diabetic_Macular_Edema")
 
-# 전체 데이터셋 설명 tsv파일 생성
 
+# 전체 데이터셋 설명 tsv파일 생성
 writedata = open('Train/Train.tsv', 'w', newline="")
 fieldnames = ['Filename', 'number', 'desease']
 wrt = csv.writer(writedata, fieldnames, delimiter="\t")
@@ -166,12 +157,12 @@ class data_download:
             all_ForderList.append(patha)
         if not all_ForderList:
             filelist += [file for file in allFile if
-                         file.upper().endswith(".JPG") or file.upper().endswith(".BMP") or file.upper().endswith(".PNG")]
+                         file.upper().endswith(".JPG") or file.upper().endswith(".BMP") or file.upper().endswith(".PNG") or file.upper().endswith(".PPM")]
         else:
             for forder in all_ForderList:
                 file_Forder = forder+'\*'
                 filelist += [file for file in list(filter(os.path.isfile, glob.glob(file_Forder))) if
-                         file.upper().endswith(".JPG") or file.upper().endswith(".BMP") or file.upper().endswith(".PNG")]
+                         file.upper().endswith(".JPG") or file.upper().endswith(".BMP") or file.upper().endswith(".PNG") or file.upper().endswith(".PPM")]
         return filelist
 
     # 데이터를 'Train'폴더에 통합. (overlap : 중복 허용 || data : data설명 csv, tsv, txt파일)
@@ -199,6 +190,7 @@ class data_download:
                     if(datanum == 14):
                         continue
                     self.copydata(i, j, "Train/" + r_recode[datanum][0], recode)
+
                 except ValueError:
                     pass
         global k
@@ -225,6 +217,7 @@ class data_download:
                 j = j.upper()
                 divide_first_type(data, i, j, num)
                 num += 1
+
         elif (overlap and isinstance(data, list)):
             for i in filelist:
                 x = i.split("\\")
@@ -252,6 +245,7 @@ class data_download:
                 else:
                     self.copydata(i, j, "Train/Normal", recode)
     # 데이터 관련 정보 전처리. csv, tsv파일이 있으면 infodata=True
+
     def Comb(self, path):
         filelist = self.return_allImage(path)
         for i in range(len(filelist)):
@@ -260,6 +254,7 @@ class data_download:
                 newname = os.path.splitext(oldname)[0] + '.bmp'
                 image = Image.open(oldname)
                 image.save(newname, 'BMP')
+                filelist[i] = newname
 
         for n_path, dirs, files in os.walk(path):
             for filename in files:
@@ -386,8 +381,6 @@ class data_download:
             obj[num][0].Comb(obj[num][0].name)
             pass
 
-    #데이터 설명 파일(HTML) 생성
-    # Messidor을 해야함
 
 def main():
     f = open(link_File, 'r', encoding='utf-8',newline="")
@@ -396,15 +389,16 @@ def main():
     for line in rdr:
         data = data_download(line[0],line[1],line[2])
         obj.append([data,line[0]])
-        data.downloadDataset()
+        # data.downloadDataset()
+        print(line[1])
     f.close()
     num = 0
     for ob in obj:
+        # if(ob[1]!='STARE'):
+        #     continue
         ob[0].preAnalysis(obj,num)
         num+=1
     time.sleep(3)
     writedata.close()
     Make_Info_Html()
-
-
 main()
