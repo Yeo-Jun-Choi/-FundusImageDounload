@@ -94,7 +94,7 @@ recode = {
     "Coats": 11,
     "Macroaneurism": 12,
     "Choroidal_Neovascularization": 13,
-    "Diabetic_Macular_Edema": 19
+    "Diabetic_Macular_Edema": 14
 }
 r_recode = invert_dictionary(recode)
 
