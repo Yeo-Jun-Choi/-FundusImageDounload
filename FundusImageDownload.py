@@ -83,7 +83,7 @@ recode = {
     "Coats": 11,
     "Macroaneurism": 12,
     "Choroidal_Neovascularization": 13,
-    "Diabetic_Macular_Edema": 19
+    "Diabetic_Macular_Edema": 14
 }
 r_recode = invert_dictionary(recode)
 
@@ -389,13 +389,11 @@ def main():
     for line in rdr:
         data = data_download(line[0],line[1],line[2])
         obj.append([data,line[0]])
-        # data.downloadDataset()
+        data.downloadDataset()
         print(line[1])
     f.close()
     num = 0
     for ob in obj:
-        # if(ob[1]!='STARE'):
-        #     continue
         ob[0].preAnalysis(obj,num)
         num+=1
     time.sleep(3)
